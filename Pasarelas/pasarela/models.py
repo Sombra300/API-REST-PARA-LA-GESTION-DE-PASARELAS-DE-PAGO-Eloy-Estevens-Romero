@@ -13,10 +13,9 @@ class Provider(models.Model):
 
 
     name=models.CharField(max_length=100, unique=True)
-    api_key=models.CharField(max_length=255, unique=True)
     environment=models.CharField(choices=environments_options, default='test')
     active=models.BooleanField(default=False)
-    creation_date=models.DateTimeField(auto_now=True)
+    creation_date=models.DateTimeField(auto_now_add=True)
 
     def clean(self):
 
@@ -29,10 +28,6 @@ class Provider(models.Model):
         
         if Provider.objects.filter(name=self.name).exclude(pk=self.pk).exists():
             raise ValidationError('El nombre ya esta en uso')
-
-        #Validar api_key
-        if self.api_key is None or self.api_key.strip()=='':
-            raise ValidationError('El valor del campo del API Key no puede estar vacio')
 
         #validar environment
         bool_environment_acepted=False
@@ -61,8 +56,8 @@ class Transaction(models.Model):
     amount=models.DecimalField(max_digits=5, decimal_places=2)
     currency=models.CharField(max_length=10, default='€')
     payment_state=models.CharField(choices=type_transaction_options, default='pending')
-    creation_date=models.DateTimeField(auto_now=True)
-    update_date=models.DateTimeField(auto_now=True)
+    creation_date=models.DateTimeField(auto_now_add=True)
+    update_date=models.DateTimeField(auto_now_add=True)
 
     def clean(self):
 
@@ -70,9 +65,8 @@ class Transaction(models.Model):
         if self.amount is None:
             raise ValidationError('Tienes que procesar algun pago para realizar una transaccion')
         
-        #TODO: Especificar filtro, comprobar si devoluciones contarian como negativo
-        if self.amount==0:
-            raise ValidationError('El pago tiene que tener un valor')
+        if self.amount<0:
+            raise ValidationError('El pago no puede ser menor a 0')
 
 
         #validar currency
@@ -94,16 +88,15 @@ class Transaction(models.Model):
 
 
         # validar provider id
-        if self.id_proveedor is None:
+        if self.id_proveedor_id is None:
             raise ValidationError('Datos del proveedor no encontrados para la transaccion')
         
-        if not Provider.objects.filter(pk=self.id_proveedor).exists():
+        if not Provider.objects.filter(pk=self.id_proveedor_id).exists():
             raise ValidationError('No se encuentra el proveedor')
 
     def __str__(self):
         return f'ID del proveedor: {self.id_proveedor}  -> {self.amount}  {self.currency}'
     
-
 
 # Modelo de las incidencias
 class Incidence(models.Model):

@@ -7,7 +7,7 @@ class ProviderSerializer(serializers.ModelSerializer):
         model=Provider
         fields='__all__'
     
-        # Validar name
+    # Validar name
     def validate_name(self, value):
 
         if value is None or value.strip()=='':
@@ -17,15 +17,7 @@ class ProviderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('El nombre es demasiado largo')
 
         return value
-    
-    # Validar api_key
-    def validate_api_key(self, value):
 
-        if value is None or value.strip()=='':
-            raise serializers.ValidationError('La API Key no puede estar vacía')
-
-        return value
-    
 
     # Validar environment
     def validate_environment(self, value):
@@ -50,8 +42,8 @@ class TransactionSerializer(serializers.ModelSerializer):
         if value is None:
             raise serializers.ValidationError('Debes indicar un importe')
 
-        if value==0:
-            raise serializers.ValidationError('El importe debe tener un valor')
+        if value<0:
+            raise serializers.ValidationError('El importe debe ser mayor que 0')
 
         return value
     
@@ -88,48 +80,5 @@ class TransactionSerializer(serializers.ModelSerializer):
 
         if provider is None:
             raise serializers.ValidationError('Datos del proveedor no encontrados para la transaccion')
-
-        return data
-
-
-
-# SERIALIZER DE INCIDENCIAS
-class IncidenceSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model=Incidence
-        fields='__all__'
-
-    # Validar description
-    def validate_description(self, value):
-
-        if len(value)>500:
-            raise serializers.ValidationError('La descripción es demasiado larga')
-
-        return value
-
-    # Validar type
-    def validate_type(self, value):
-
-        valid_options=[
-            'nonpayment',
-            'connection_error',
-            'devolution',
-            'timeout',
-            'authentication_error'
-        ]
-
-        if value not in valid_options:
-            raise serializers.ValidationError('Tipo de incidencia no válido')
-
-        return value
-
-    # Validación general
-    def validate(self, data):
-
-        transaction=data.get('id_transaction')
-
-        if transaction is None:
-            raise serializers.ValidationError('Datos de la transaccion no encontrados para la transaccion')
 
         return data
