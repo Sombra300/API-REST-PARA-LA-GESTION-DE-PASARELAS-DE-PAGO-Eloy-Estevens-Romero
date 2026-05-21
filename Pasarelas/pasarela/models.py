@@ -53,6 +53,7 @@ class Transaction(models.Model):
     ]
 
     id_proveedor=models.ForeignKey(Provider, on_delete=models.CASCADE)
+    stripe_session_id = models.CharField(max_length=255, null=True, blank=True)
     amount=models.DecimalField(max_digits=5, decimal_places=2)
     currency=models.CharField(max_length=10, default='€')
     payment_state=models.CharField(choices=type_transaction_options, default='pending')
