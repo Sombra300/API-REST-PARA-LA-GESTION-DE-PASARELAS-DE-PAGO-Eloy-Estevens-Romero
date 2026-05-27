@@ -6,7 +6,7 @@ from pasarela.models import Provider, Transaction, Incidence
 class ProviderSerializer(ModelSerializer):
     class Meta:
         model=Provider
-        fields=['name', 'environment', 'active', 'creation_date']
+        fields=['id', 'name', 'environment', 'active', 'creation_date']
     
     # Validar name
     def validate_name(self, value):
@@ -35,7 +35,7 @@ class ProviderSerializer(ModelSerializer):
 class TransactionSerializer(ModelSerializer):
     class Meta:
         model=Transaction
-        fields=['id_proveedor', 'amount', 'currency', 'payment_state']
+        fields=['id', 'id_proveedor', 'amount', 'currency', 'payment_state']
 
 
     # Validar amount
@@ -91,7 +91,7 @@ class IncidenceSerializer(ModelSerializer):
 
     class Meta:
         model=Incidence
-        fields=['id_transaction', 'description', 'type']
+        fields=['id', 'id_transaction', 'description', 'type']
 
     # Validar description
     def validate_description(self, value):

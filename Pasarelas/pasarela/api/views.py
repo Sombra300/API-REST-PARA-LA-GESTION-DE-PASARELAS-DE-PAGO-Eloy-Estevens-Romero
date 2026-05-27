@@ -1,7 +1,6 @@
 from pasarela.models import Provider, Transaction, Incidence
 from pasarela.api.serializers import ProviderSerializer, TransactionSerializer, IncidenceSerializer
 from rest_framework.viewsets import  ModelViewSet
-from rest_framework.permissions import IsAdminUser
 import stripe
 from django.conf import settings
 from rest_framework.decorators import api_view
@@ -10,35 +9,33 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+stripe.api_key=settings.STRIPE_SECRET_KEY
 
 
 class ProviderModelViewSet(ModelViewSet):
-    #permission_classes=[IsAdminUser] #solo admins puede interactuar
     serializer_class=ProviderSerializer
     queryset=Provider.objects.all()
-    #http_method_names=['get', 'put']-> limita el CRUD para ser solo get y put
 
 
 
 class TransactionModelViewSet(ModelViewSet):
-    #permission_classes=[IsAdminUser]
     serializer_class=TransactionSerializer
     queryset=Transaction.objects.all()
 
 
 
 class IncidenceModelViewSet(ModelViewSet):
-    #permission_classes=[IsAdminUser]
     serializer_class=IncidenceSerializer
     queryset=Incidence.objects.all()
 
 
+#Crear transaction
 @api_view(['POST'])
 def create_payment(request):
 
     provider_id=request.data.get('provider_id')
     amount=request.data.get('amount')
+    currency = request.data.get('currency', 'eur')
 
     try:
 
@@ -51,9 +48,9 @@ def create_payment(request):
             line_items=[
                 {
                     'price_data': {
-                        'currency': 'eur',
+                        'currency': currency,
                         'product_data': {
-                            'name': f'Pago proveedor {provider.id}',
+                            'name': f'Pago usando el proveedor {provider.name}',
                         },
                         'unit_amount': int(float(amount)*100),
                     },
@@ -63,21 +60,21 @@ def create_payment(request):
 
             mode='payment',
 
-            success_url='http://localhost:3000/success',
-            cancel_url='http://localhost:3000/cancel',
+            success_url='http://127.0.0.1:8000/api/transaction/',
+            cancel_url='http://127.0.0.1:8000/api/transaction/',
         )
 
         transaction=Transaction.objects.create(
             id_proveedor=provider,
             amount=amount,
-            currency='EUR',
+            currency=currency,
             payment_state='pending',
             stripe_session_id=checkout_session.id,
         )
 
         return Response({
             'checkout_url': checkout_session.url,
-            'transaction_id': transaction.id
+            'transaction_id_create': transaction.id
         })
 
     except Provider.DoesNotExist:
@@ -93,7 +90,7 @@ def create_payment(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
 
-
+#Actualizar transaction pendiente->completa
 @csrf_exempt
 @api_view(['POST'])
 def stripe_webhook(request):
@@ -112,24 +109,74 @@ def stripe_webhook(request):
         if event['type']=='checkout.session.completed':
 
             session=event['data']['object']
-
             stripe_session_id=session['id']
-
+            payment_intent=session['payment_intent']
             transaction=Transaction.objects.get(
                 stripe_session_id=stripe_session_id
             )
-
             transaction.payment_state='completed'
+            transaction.stripe_payment_intent=payment_intent
             transaction.save()
 
         return Response(status=200)
 
     except Exception as e:
 
-        print("ERROR WEBHOOK:")
+        print('ERROR WEBHOOK:')
         print(str(e))
 
         return Response(
-            {"error": str(e)},
+            {'error': str(e)},
             status=400
         )
+    
+
+
+# Hacer devoluciones
+@api_view(['POST'])
+def refund_payment(request):
+
+    transaction_id_create=request.data.get('transaction_id')
+
+    try:
+
+        transaction=Transaction.objects.get(id=transaction_id_create)
+        if transaction.payment_state!='completed':
+            return Response({
+                'error': 'Solo se pueden devolver pagos completados'
+            }, status=400)
+
+
+        if not transaction.stripe_payment_intent:
+            return Response({
+                'error': 'La transacción no tiene payment intent'
+            }, status=400)
+
+        refund=stripe.Refund.create(
+            payment_intent=transaction.stripe_payment_intent
+        )
+
+        transaction.payment_state='refunded'
+        transaction.save()
+
+        incidence_create=Incidence.objects.create(
+            id_transaction=transaction,
+            description='Devolution',
+            type='devolution'
+        )
+
+        return Response({
+            'message': 'Refund realizado correctamente',
+            'refund_id': refund.id,
+            'incidence_id': incidence_create.id
+        })
+
+    except Transaction.DoesNotExist:
+        return Response({
+            'error': 'Transacción no encontrada'
+        }, status=404)
+
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=400)

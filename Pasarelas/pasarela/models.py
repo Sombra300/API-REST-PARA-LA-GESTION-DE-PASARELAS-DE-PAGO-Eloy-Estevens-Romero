@@ -6,7 +6,6 @@ from django.core.exceptions import ValidationError
 # Modelo de los Proveedores
 class Provider(models.Model):
     environments_options=[
-        ('dev', 'Desarrollo'),
         ('test', 'Testing'),
         ('prod', 'Producción'),
     ]
@@ -49,7 +48,7 @@ class Transaction(models.Model):
         ('pending', 'Pago pendiente'), 
         ('completed', 'Pago completado'),
         ('failed', 'Pago fallido'),
-        ('refuned', 'Pago devuelto'),
+        ('refunded', 'Pago devuelto')
     ]
 
     id_proveedor=models.ForeignKey(Provider, on_delete=models.CASCADE)
@@ -57,6 +56,7 @@ class Transaction(models.Model):
     amount=models.DecimalField(max_digits=5, decimal_places=2)
     currency=models.CharField(max_length=10, default='€')
     payment_state=models.CharField(choices=type_transaction_options, default='pending')
+    stripe_payment_intent=models.CharField(max_length=255, null=True, blank=True)
     creation_date=models.DateTimeField(auto_now_add=True)
     update_date=models.DateTimeField(auto_now_add=True)
 
@@ -120,7 +120,7 @@ class Incidence(models.Model):
         if self.id_transaction is None:
             raise ValidationError('Datos de la transaccion no encontrados para la transaccion')
         
-        if not Transaction.objects.filter(pk=self.id_transaction).exists():
+        if not Transaction.objects.filter(pk=self.id_transaction_id).exists():
             raise ValidationError('No se encuentra la transaccion')
 
         #validar description
