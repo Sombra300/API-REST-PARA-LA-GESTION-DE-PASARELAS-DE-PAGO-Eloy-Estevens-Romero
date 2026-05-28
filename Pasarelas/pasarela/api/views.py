@@ -39,6 +39,12 @@ def create_payment(request):
 
     try:
 
+        if not isinstance(amount, (int, float)):
+            raise ValueError("El importe debe ser un número")
+
+        if amount<=0 or amount=='':
+            raise Exception('El importe tiene que ser superior a 0')
+
         provider=Provider.objects.get(id=provider_id)
 
         # crear sesión stripe
