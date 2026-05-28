@@ -35,7 +35,7 @@ def create_payment(request):
 
     provider_id=request.data.get('provider_id')
     amount=request.data.get('amount')
-    currency = request.data.get('currency', 'eur')
+    currency = request.data.get('currency', 'EUR')
 
     try:
 
