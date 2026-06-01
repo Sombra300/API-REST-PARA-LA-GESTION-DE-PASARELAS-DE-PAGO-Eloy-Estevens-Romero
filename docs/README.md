@@ -45,15 +45,28 @@ La aplicación está diseñada siguiendo una arquitectura RESTful y buenas prác
 # Estructura inicial del proyecto
 
 ```bash
+DOCS/
+│
+├── README.md
+├── product backlog.pdf
+├── memoria tecnica.pdf
+├── manual usuario.pdf
+├── requirements.txt
+└── README.md
+
 GESTION_DE_PASARELAS/
 │
-├── blacklog/
-├── config/
-├── core/
-├── frontent/
-├── docs/
-├── test/  
-├── env
-├── requirements.txt
-├── README.md
+├── Pasarela
+│   │
+│   ├── migrations/
+│   ├── api/
+│   └── test/
+│
+├── Pasarelas
+│   │
+│   ├── setings.py
+│   └── url.py  
+│ 
+├── .env
+├── db.sqlite3
 └── manage.py
